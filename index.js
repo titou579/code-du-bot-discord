@@ -1,14 +1,14 @@
 const { Client, GatewayIntentBits, ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const keepAlive = require('./server.js');
 
-// Lance le serveur web Express pour Render
+// Lance le serveur web Express pour Railway/Render
 keepAlive();
 
 console.log("🔍 [DIAGNOSTIC] Vérification de la présence du Token...");
 if (!process.env.DISCORD_TOKEN) {
-    console.error("❌ [DIAGNOSTIC] Erreur : Le DISCORD_TOKEN est introuvable dans l'onglet Environment de Render !");
+    console.error("❌ [DIAGNOSTIC] Erreur : Le DISCORD_TOKEN est introuvable !");
 } else {
-    console.log("✅ [DIAGNOSTIC] Le Token a bien été détecté par Render.");
+    console.log("✅ [DIAGNOSTIC] Le Token a bien été détecté.");
 }
 
 // Configuration du Bot Discord
@@ -22,18 +22,13 @@ const client = new Client({
     ]
 });
 
-// 🔥 MODE ESPION : Affiche absolument tout ce que fait le bot en coulisses
-client.on('debug', (info) => {
-    console.log(`📡 [DEBUG DISCORD] ${info}`);
-});
-
-// IDs de tes salons
+// IDs réels de tes salons mis à jour
 const CHANNELS = {
-    WELCOME: '1519760609854623965',      
-    TICKET: '1519760609854623965',       
-    RULES: '1519707925944205404',        
-    SURPRISE: '1520409880983371816',     
-    CREATOR_VOICE: '1519782037215776952' 
+    WELCOME: '1519746058656153680',      // Ton salon #bienvenue
+    TICKET: '1519760609854623965',       // Ton salon #ticket
+    RULES: '1519707925944205404',        // Ton salon #regles
+    SURPRISE: '1520409880983371816',     // Ton salon #jeu-surprise
+    CREATOR_VOICE: '1519782037215776952' // Salon vocal de création
 };
 
 const tempChannels = new Map();
@@ -195,8 +190,6 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-// Connexion avec capture d'erreur forcée
-console.log("🔌 Tentative de connexion à l'API Discord...");
 client.login(process.env.DISCORD_TOKEN).catch(err => {
-    console.error("❌ [DIAGNOSTIC] Le login a échoué lamentablement :", err.message);
+    console.error("❌ Le login a échoué :", err.message);
 });
