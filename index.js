@@ -4,6 +4,13 @@ const keepAlive = require('./server.js');
 // Lance le serveur web Express pour Render
 keepAlive();
 
+console.log("🔍 [DIAGNOSTIC] Vérification de la présence du Token...");
+if (!process.env.DISCORD_TOKEN) {
+    console.error("❌ [DIAGNOSTIC] Erreur : Le DISCORD_TOKEN est introuvable dans l'onglet Environment de Render !");
+} else {
+    console.log("✅ [DIAGNOSTIC] Le Token a bien été détecté par Render.");
+}
+
 // Configuration du Bot Discord
 const client = new Client({
     intents: [
@@ -13,6 +20,11 @@ const client = new Client({
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates
     ]
+});
+
+// 🔥 MODE ESPION : Affiche absolument tout ce que fait le bot en coulisses
+client.on('debug', (info) => {
+    console.log(`📡 [DEBUG DISCORD] ${info}`);
 });
 
 // IDs de tes salons
@@ -132,7 +144,6 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
 
-    // Bouton Ticket
     if (interaction.customId === 'open_ticket') {
         await interaction.deferReply({ ephemeral: true });
         
@@ -162,7 +173,6 @@ client.on('interactionCreate', async (interaction) => {
         setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
     }
 
-    // Bouton Surprise Survivant Duo
     if (interaction.customId === 'start_survivant') {
         await interaction.deferReply();
         
@@ -185,4 +195,8 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+// Connexion avec capture d'erreur forcée
+console.log("🔌 Tentative de connexion à l'API Discord...");
+client.login(process.env.DISCORD_TOKEN).catch(err => {
+    console.error("❌ [DIAGNOSTIC] Le login a échoué lamentablement :", err.message);
+});
