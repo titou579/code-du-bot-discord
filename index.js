@@ -1,18 +1,10 @@
 const { Client, GatewayIntentBits, ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const express = require('express');
-const app = express();
+const keepAlive = require('./server.js');
 
-// --- SERVEUR WEB POUR RENDER ---
-app.get('/', (req, res) => {
-    res.send('Le bot est en ligne !');
-});
+// Lance le serveur web Express pour Render
+keepAlive();
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Serveur web actif sur le port ${PORT}`);
-});
-
-// --- CONFIGURATION DU BOT DISCORD ---
+// Configuration du Bot Discord
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -23,19 +15,19 @@ const client = new Client({
     ]
 });
 
-// IDs stricts de tes salons configurés
+// IDs de tes salons
 const CHANNELS = {
-    WELCOME: '1519760609854623965',      // Message de bienvenue envoyé ici
-    TICKET: '1519760609854623965',       // Salon pour récupérer un ticket
-    RULES: '1519707925944205404',        // Salon où il y a les règles
-    SURPRISE: '1520409880983371816',     // Salon pour la surprise (Survivant Duo)
-    CREATOR_VOICE: '1519782037215776952' // Salon vocal de création
+    WELCOME: '1519760609854623965',      
+    TICKET: '1519760609854623965',       
+    RULES: '1519707925944205404',        
+    SURPRISE: '1520409880983371816',     
+    CREATOR_VOICE: '1519782037215776952' 
 };
 
 const tempChannels = new Map();
 
 client.once('ready', () => {
-    console.log(`Loggé avec succès en tant que ${client.user.tag}!`);
+    console.log(`🤖 Bot connecté avec succès en tant que ${client.user.tag}!`);
 });
 
 // --- 1: BIENVENUE AUTOMATIQUE ---
@@ -84,11 +76,10 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
     }
 });
 
-// --- 3: SYSTÈME DE TICKETS & RÈGLES ---
+// --- 3: COMMANDES DE SETUP (TICKETS & RÈGLES) ---
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    // Commande !setup-ticket à taper dans le salon ticket pour mettre le bouton d'ouverture
     if (message.content === '!setup-ticket' && message.member.permissions.has(PermissionFlagsBits.Administrator)) {
         await message.delete().catch(() => {});
         
@@ -104,7 +95,6 @@ client.on('messageCreate', async (message) => {
         message.channel.send({ embeds: [ticketEmbed], components: [row] });
     }
 
-    // Commande !regles à taper dans le salon règles
     if (message.content === '!regles' && message.member.permissions.has(PermissionFlagsBits.Administrator)) {
         await message.delete().catch(() => {});
 
@@ -121,13 +111,28 @@ client.on('messageCreate', async (message) => {
 
         message.channel.send({ embeds: [rulesEmbed] });
     }
+
+    if (message.content === '!setup-surprise' && message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+        await message.delete().catch(() => {});
+        
+        const surpriseEmbed = new EmbedBuilder()
+            .setColor('#ffaa00')
+            .setTitle('🌵 MINI-JEU SIMULATEUR SURVIVANT DUO')
+            .setDescription('Lance un combat rapide en mode Survivant Duo aux côtés de ton chef de serveur ! Serez-vous capables de décrocher le Top 1 ?');
+
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('start_survivant').setLabel('Lancer la game (Duo)').setStyle(ButtonStyle.Success).setEmoji('🚀')
+        );
+
+        message.channel.send({ embeds: [surpriseEmbed], components: [row] });
+    }
 });
 
-// Gestion des interactions (Bouton Ticket + Jeu Surprise)
+// --- 4: INTERACTIONS (BOUTONS TICKETS & JEU) ---
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
 
-    // Ouverture du Ticket
+    // Bouton Ticket
     if (interaction.customId === 'open_ticket') {
         await interaction.deferReply({ ephemeral: true });
         
@@ -157,7 +162,7 @@ client.on('interactionCreate', async (interaction) => {
         setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
     }
 
-    // --- 4: LA SURPRISE SURVIVANT DUO ---
+    // Bouton Surprise Survivant Duo
     if (interaction.customId === 'start_survivant') {
         await interaction.deferReply();
         
@@ -168,7 +173,7 @@ client.on('interactionCreate', async (interaction) => {
             `🟩 Vous ramassez 3 boîtes d'énergie ! Votre puissance augmente. Ennemis restants : 4 équipes.`,
             `⚠️ Alerte ! **${randomEnemy}** vous agresse au milieu des buissons !`,
             Math.random() > 0.35 
-                ? `🔥 **TOP 1 COUPE DE SÉCURITÉ !** \`titou1375902\` enchaîne un doublé au gadget et vous sécurisez le Survivant ! (+9 TR) 🏆` 
+                ? `🔥 **TOP 1 !** \`titou1375902\` enchaîne un doublé au gadget et vous sécurisez le Survivant ! (+9 TR) 🏆` 
                 : `💔 Aïe ! Le poison de la zone vous a bloqué. \`titou1375902\` meurt en tentant un move héroïque. Top 2 ! (+7 TR)`
         ];
 
@@ -177,24 +182,6 @@ client.on('interactionCreate', async (interaction) => {
             await new Promise(resolve => setTimeout(resolve, 2500));
             await msg.edit({ content: steps[i] });
         }
-    }
-});
-
-// Message d'ancrage permanent dans le salon surprise
-client.on('messageCreate', async (message) => {
-    if (message.channelId === CHANNELS.SURPRISE && message.content === '!setup-surprise' && message.member.permissions.has(PermissionFlagsBits.Administrator)) {
-        await message.delete().catch(() => {});
-        
-        const surpriseEmbed = new EmbedBuilder()
-            .setColor('#ffaa00')
-            .setTitle('🌵 MINI-JEU SIMULATEUR SURVIVANT DUO')
-            .setDescription('Lance un combat rapide en mode Survivant Duo aux côtés de ton chef de serveur ! Serez-vous capables de décrocher le Top 1 ?');
-
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('start_survivant').setLabel('Lancer la game (Duo)').setStyle(ButtonStyle.Success).setEmoji('🚀')
-        );
-
-        message.channel.send({ embeds: [surpriseEmbed], components: [row] });
     }
 });
 
